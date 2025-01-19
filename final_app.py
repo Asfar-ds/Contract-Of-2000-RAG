@@ -18,7 +18,7 @@ st.set_page_config(page_title='Llama Models for Contracts', page_icon=':robot_fa
 
 # Sidebar configuration
 with st.sidebar:
-    st.title('🦙💬 Llama Chatbot')
+    st.title('🏛️💬 AI Legal Assistant ')
     st.write('This Llama model will answer questions based on a 2000-document contract knowledge base.')
 
     if groq_api:
