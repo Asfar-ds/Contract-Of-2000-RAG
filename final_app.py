@@ -143,7 +143,7 @@ for messages in st.session_state.get("chat_history", []):
 def add_sample_questions():
     st.subheader('Sample Questions:')
     st.write('👉 How do the "364-Day" and "Five-Year" Credit Agreements differ in terms of interest rates, payment, and defaults?')
-    st.write('👉 What is the effect of the covenants in these credit agreements on the borrower's operations and finances?')
+    st.write("👉 What is the effect of the covenants in these credit agreements on the borrower's operations and finances?")
     st.write('👉 What provisions are made for managing confidential information in these agreements, and what are their potential impacts?')
 
 # Input box for user prompt
