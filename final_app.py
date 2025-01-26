@@ -2,9 +2,11 @@ import streamlit as st
 from langchain_community.document_loaders import DirectoryLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_groq import ChatGroq
 from langchain.vectorstores import FAISS
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from dotenv import load_dotenv
 import os
 
@@ -17,68 +19,138 @@ os.environ['GROQ_API_KEY'] = groq_api  # Set the environment variable
 st.set_page_config(page_title='Llama Models for Contracts', page_icon=':robot_face:', layout='wide')
 
 # Sidebar configuration
-with st.sidebar:
-    st.title('🏛️💬 AI Legal Assistant ')
-    st.write('This Llama model will answer questions based on a 2000-document contract knowledge base.')
+st.sidebar.title('🏛️💬 AI Legal Assistant')
+st.sidebar.write('''The model is trained on 512 contract files, including Real Property Leases, Intellectual Property Assignments, Indebtedness Agreements, Subcontracts, and Transition Services Agreements. Chat with the AI Assistant to explore these contracts.
+''')
 
-    if groq_api:
-        st.success('API Key is provided', icon='✅')
+
+uploaded_file = st.sidebar.file_uploader('Upload your data', type=['txt', 'pdf'])
+
+
+
+
+def load_and_split_file(file):
+    if file is None:
+        return None
     else:
-        st.error('API Key not found', icon='🚨')
+        # Save the uploaded file temporarily
+        temp_file_path = os.path.join("temp", file.name)
+        os.makedirs("temp", exist_ok=True)  # Ensure temp directory exists
+        
+        with open(temp_file_path, "wb") as f:
+            f.write(file.getbuffer())
+        
+        # Determine the loader based on file type
+        if file.type == 'text/plain':
+            loader = TextLoader(temp_file_path)
+        elif file.type == 'application/pdf':
+            loader = PyPDFLoader(temp_file_path)
+        else:
+            st.error("Unsupported file type.")
+            return None
 
-    st.subheader('Models ֎ and Parameters 🛠️')
+        # Load and split the document
+        docs = loader.load()
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        return splitter.split_documents(docs)
 
-    selected_model = st.selectbox('Choose the Model', ["Llama 3 70b", 'Llama 3 8b', 'Llama 3.1 8b instruct'])
+persist_directory = 'faissembeddings'
+model_docs = 'sentence-transformers/all-mpnet-base-v2'
 
-    model = None
-    if selected_model == 'Llama 3 70b':
-        model = 'llama3-70b-8192'
-    elif selected_model == 'Llama 3 8b':
-        model = 'llama-3.1-8b-instant'
-    elif selected_model == 'Llama 3.1 8b instruct':
-        model = 'llama-3.1-8b-instant'
 
-    temperature = st.slider('Temperature', min_value=0.01, max_value=1.0, value=0.5, step=0.1)
-    p_value = st.slider('P Value', min_value=0.01, max_value=1.0, value=0.9, step=0.1)
+
+
+
+
+
+
+if groq_api:
+    st.sidebar.success('API Key is provided', icon='✅')
+else:
+    st.sidebar.error('API Key not found', icon='🚨')
+
+st.sidebar.subheader('Models ֎ and Parameters 🛠️')
+selected_model = st.sidebar.selectbox('Choose the Model', ["Llama 3 70b", 'Llama 3 8b', 'Llama 3.1 8b instruct'])
+
+model = None
+if selected_model == 'Llama 3 70b':
+    model = 'llama3-70b-8192'
+elif selected_model == 'Llama 3 8b':
+    model = 'llama-3.1-8b-instant'
+elif selected_model == 'Llama 3.1 8b instruct':
+    model = 'llama-3.1-8b-instant'
+
+temperature = st.sidebar.slider('Temperature', min_value=0.01, max_value=1.0, value=0.5, step=0.1)
+p_value = st.sidebar.slider('P Value', min_value=0.01, max_value=1.0, value=0.9, step=0.1)
 
 # Chat Emojis
 bot_emoji = '🤖'
 user_emoji = '🙋‍♂️'
 
+
+
 # Embeddings function
-def load_embeddings():
+def load_embeddings(modelHF):
     persist_directory = 'faissembeddings'
 
     # Embedding model name
-    embeddings_model = 'sentence-transformers/all-mpnet-base-v2'
+    embeddings_model = modelHF
 
-    # Initialize HuggingFace embeddings
+    # Initialize Hugging Face embeddings
     hf_model = HuggingFaceEmbeddings(model_name=embeddings_model)
 
-    # Load FAISS index (or create if it doesn't exist)
 
+    # Load FAISS index (or create if it doesn't exist)
     embeddings_instance = FAISS.load_local(
         folder_path=persist_directory,
         embeddings=hf_model,
         allow_dangerous_deserialization=True  # Enable loading if you trust the source
-    )   
+    )
     return embeddings_instance
 
-# Initialize session state for chat history
+# Initialize session state for embeddings and chat history
+if 'embeddings' not in st.session_state:
+    st.session_state.embeddings = load_embeddings(model_docs)
+
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
-# Initialize session state for embeddings
-if 'embeddings' not in st.session_state:
-    st.session_state.embeddings = load_embeddings()
+
+
+
+
+def add_doc_to_embeddings(file):
+    if file is not None:
+        documents = load_and_split_file(file)
+        
+        st.session_state.embeddings.add_documents(documents)
+        st.session_state.embeddings.save_local(folder_path=persist_directory)
+
+    # Button to add document
+if uploaded_file:
+    if st.sidebar.button("Add Document to Embeddings"):
+        add_doc_to_embeddings(uploaded_file)
+
+
+
 
 # Display chat history
-for messages in st.session_state.chat_history:
+
+for messages in st.session_state.get("chat_history", []):
     with st.chat_message(messages['role']):
         st.markdown(messages['content'])
 
+def add_sample_questions():
+    st.subheader('Sample Questions:')
+    st.write('👉 How do the "364-Day" and "Five-Year" Credit Agreements differ in terms of interest rates, payment, and defaults?')
+    st.write('👉 What is the effect of the covenants in these credit agreements on the borrower's operations and finances?')
+    st.write('👉 What provisions are made for managing confidential information in these agreements, and what are their potential impacts?')
+
 # Input box for user prompt
 user_prompt = st.chat_input('Ask a question about contracts')
+
+if not user_prompt:
+    add_sample_questions()
 
 # Handle user prompt
 if user_prompt:
@@ -103,7 +175,7 @@ if user_prompt:
 
         # Generate response
         messages = [
-            SystemMessage(content="You are a helpful assistant specialized in contracts. If uese asks hi or hello give him generic answer from youself without context  "),
+            SystemMessage(content="You are a helpful assistant specialized in contracts."),
             HumanMessage(content=f"Context: {context}\n\nQuestion: {user_prompt}")
         ]
         response = chat_model(messages)
