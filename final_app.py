@@ -175,7 +175,7 @@ if user_prompt:
 
         # Generate response
         messages = [
-            SystemMessage(content="You are a helpful assistant specialized in contracts. If user asks you to answer in another language than only answer in that language. Let say user asks a question and than say you to give me answer in arabic or any other language than give him complete answer in that language"),
+            SystemMessage(content="You are a helpful assistant specialized in contracts. If user asks you to answer in another language than only answer in that language. "),
             HumanMessage(content=f"Context: {context}\n\nQuestion: {user_prompt}")
         ]
         response = chat_model(messages)
