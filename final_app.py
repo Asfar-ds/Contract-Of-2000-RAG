@@ -24,7 +24,7 @@ st.sidebar.write('''The model is trained on 512 contract files, including Real P
 ''')
 
 
-uploaded_file = st.sidebar.file_uploader('Upload your data', type=['txt', 'pdf'])
+uploaded_file = st.sidebar.file_uploader('You can also upload your own data', type=['txt', 'pdf'])
 
 
 
