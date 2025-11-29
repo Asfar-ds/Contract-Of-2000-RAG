@@ -1,14 +1,12 @@
-import streamlit as st
-from langchain_community.document_loaders import DirectoryLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from flask import Flask, render_template, request, jsonify
+from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader, TextLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_groq import ChatGroq
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
 from langchain_core.messages import HumanMessage, SystemMessage
-
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
@@ -183,3 +181,4 @@ if user_prompt:
         # Display response
         st.chat_message('assistant').markdown(response.content)
         st.session_state.chat_history.append({'role': 'assistant', 'content': response.content})
+
