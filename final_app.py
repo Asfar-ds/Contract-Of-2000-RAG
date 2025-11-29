@@ -138,9 +138,10 @@ if user_prompt:
     st.chat_message('user').markdown(user_prompt)
     st.session_state.chat_history.append({'role': 'user', 'content': user_prompt})
 
-    # Retriever
-    retriever = st.session_state.embeddings.as_retriever()
-    retrieved_docs = retriever.retrieve(user_prompt)  # ✅ fixed method name
+    # -----------------------------
+    # Retrieve relevant docs
+    # -----------------------------
+    retrieved_docs = st.session_state.embeddings.similarity_search(user_prompt, k=4)  # ✅ fixed
 
     # Combine context
     context = "\n".join([doc.page_content for doc in retrieved_docs])
