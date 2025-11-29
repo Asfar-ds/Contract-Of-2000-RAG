@@ -7,6 +7,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.messages import HumanMessage, SystemMessage
 import os
 from dotenv import load_dotenv
+import streamlit as st
 
 # Load environment variables
 load_dotenv()
@@ -181,4 +182,5 @@ if user_prompt:
         # Display response
         st.chat_message('assistant').markdown(response.content)
         st.session_state.chat_history.append({'role': 'assistant', 'content': response.content})
+
 
