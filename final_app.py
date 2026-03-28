@@ -161,7 +161,7 @@ if user_prompt:
     ]
 
     # Generate response
-    response = chat_model(messages)
+    response = chat_model.invoke(messages)
 
     st.chat_message('assistant').markdown(response.content)
     st.session_state.chat_history.append({'role': 'assistant', 'content': response.content})
